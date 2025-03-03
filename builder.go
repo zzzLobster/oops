@@ -155,7 +155,22 @@ func (o OopsErrorBuilder) Errorf(format string, args ...any) error {
 }
 
 func (o OopsErrorBuilder) Join(e ...error) error {
-	return o.Wrap(errors.Join(e...))
+	n := 0
+	var lastErr error
+	for _, err := range e {
+		if err != nil {
+			n++
+			lastErr = err
+		}
+	}
+	switch n {
+	case 0:
+		return nil
+	case 1:
+		return o.Wrap(lastErr)
+	default:
+		return o.Wrap(errors.Join(e...))
+	}
 }
 
 // Recover handle panic and returns `oops.OopsError` object that satisfies `error`.
