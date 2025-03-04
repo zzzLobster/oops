@@ -172,10 +172,10 @@ func TestOopsTags(t *testing.T) {
 	is.Len(join.Unwrap(), 2)
 	is.Equal(assert.AnError, join.Unwrap()[0].(OopsError).err)
 	is.Equal(assert.AnError, join.Unwrap()[1].(OopsError).err)
-	is.Equal([]string{"iam", "authz", "iam"}, err.(OopsError).tags) // not deduplicated
-	is.Equal([]string{"iam", "internal"}, join.Unwrap()[0].(OopsError).tags)
-	is.Equal([]string{"not-found"}, join.Unwrap()[1].(OopsError).tags)
-	is.Equal([]string{"iam", "authz", "internal"}, err.(OopsError).Tags()) // deduplicated and recursive
+	is.ElementsMatch([]string{"iam", "authz"}, lo.Keys(err.(OopsError).tags))
+	is.ElementsMatch([]string{"iam", "internal"}, lo.Keys(join.Unwrap()[0].(OopsError).tags))
+	is.ElementsMatch([]string{"not-found"}, lo.Keys(join.Unwrap()[1].(OopsError).tags))
+	is.ElementsMatch([]string{"iam", "authz", "internal"}, err.(OopsError).Tags()) // recursive
 }
 
 func TestOopsHasTag(t *testing.T) {
@@ -660,7 +660,11 @@ func TestOopsLogValuer(t *testing.T) {
 	for i := range got {
 		is.Equal(expectedAttrs[i].Key, got[i].Key)
 		is.Equal(expectedAttrs[i].Value.Kind(), got[i].Value.Kind())
-		is.EqualValues(expectedAttrs[i].Value.Any(), got[i].Value.Any())
+		if "tags" == got[i].Key {
+			is.ElementsMatch(expectedAttrs[i].Value.Any(), got[i].Value.Any())
+		} else {
+			is.EqualValues(expectedAttrs[i].Value.Any(), got[i].Value.Any())
+		}
 	}
 }
 

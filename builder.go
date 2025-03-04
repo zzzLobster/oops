@@ -45,7 +45,7 @@ func new() OopsErrorBuilder {
 
 		// context
 		domain:  "",
-		tags:    []string{},
+		tags:    make(map[string]struct{}),
 		context: map[string]any{},
 
 		trace: "",
@@ -240,7 +240,9 @@ func (o OopsErrorBuilder) In(domain string) OopsErrorBuilder {
 // Tags adds multiple tags, describing the feature returning an error.
 func (o OopsErrorBuilder) Tags(tags ...string) OopsErrorBuilder {
 	o2 := o.copy()
-	o2.tags = append(o2.tags, tags...)
+	for _, tag := range tags {
+		o2.tags[tag] = struct{}{}
+	}
 	return o2
 }
 

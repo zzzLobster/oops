@@ -30,7 +30,7 @@ type OopsError struct {
 
 	// context
 	domain  string
-	tags    []string
+	tags    map[string]struct{}
 	context map[string]any
 
 	trace string
@@ -118,18 +118,22 @@ func (o OopsError) Domain() string {
 
 // Tags returns the tags of the error.
 func (o OopsError) Tags() []string {
-	tags := []string{}
+	tags := make(map[string]struct{})
 
 	recursive(o, func(e OopsError) {
-		tags = append(tags, e.tags...)
+		for tag := range e.tags {
+			tags[tag] = struct{}{}
+		}
 	})
 
-	return lo.Uniq(tags)
+	return lo.MapToSlice(tags, func(key string, _ struct{}) string {
+		return key
+	})
 }
 
 // HasTag returns true if the tags of the error contain provided value.
 func (o OopsError) HasTag(tag string) bool {
-	if lo.Contains(o.tags, tag) {
+	if _, ok := o.tags[tag]; ok {
 		return true
 	}
 
