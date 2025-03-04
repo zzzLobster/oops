@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/otel/trace"
@@ -188,6 +189,73 @@ func TestOopsHasTag(t *testing.T) {
 	is.True(err.(OopsError).HasTag("authz"))
 	is.False(err.(OopsError).HasTag("not-found")) // Does not go over all joined errors so far
 	is.False(err.(OopsError).HasTag("1234"))
+}
+
+const errorNum = 50
+const tagsPerError = 100
+
+func generateTags() []string {
+	preparedTags := make([]string, errorNum*tagsPerError)
+	for i := range preparedTags {
+		preparedTags[i] = uuid.Must(uuid.NewRandom()).String()
+	}
+	return preparedTags
+}
+
+func instantiateErrorsWithTags(preparedTags []string) error {
+	cause := assert.AnError
+	for j := 0; j < errorNum; j++ {
+		tags := make([]string, tagsPerError)
+		for t := 0; t < tagsPerError; t++ {
+			tags[t] = preparedTags[j*tagsPerError+t]
+		}
+		cause = new().Tags(tags...).Wrap(cause)
+	}
+	return cause
+}
+
+func BenchmarkCreateErrorsWithTags(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		preparedTags := generateTags()
+		b.StartTimer()
+		cause := instantiateErrorsWithTags(preparedTags)
+		oopsError, casted := AsOops(cause)
+		if !casted {
+			b.FailNow()
+		}
+		_ = oopsError.tags
+	}
+}
+
+func BenchmarkGetTags(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		preparedTags := generateTags()
+		cause := instantiateErrorsWithTags(preparedTags)
+		b.StartTimer()
+		oopsError, casted := AsOops(cause)
+		if !casted {
+			b.FailNow()
+		}
+		allTags := oopsError.Tags()
+		_ = len(allTags)
+	}
+}
+
+func BenchmarkHasTag(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		preparedTags := generateTags()
+		cause := instantiateErrorsWithTags(preparedTags)
+		b.StartTimer()
+		oopsError, casted := AsOops(cause)
+		if !casted {
+			b.FailNow()
+		}
+		_ = oopsError.HasTag(uuid.Must(uuid.NewRandom()).String())
+		_ = oopsError.HasTag(preparedTags[0])
+	}
 }
 
 func TestOopsTx(t *testing.T) {

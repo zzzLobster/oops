@@ -5,6 +5,7 @@ go 1.21
 // Test dependencies are removed on release
 
 require (
+	github.com/google/uuid v1.6.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/samber/lo v1.49.1
 	github.com/stretchr/testify v1.10.0
